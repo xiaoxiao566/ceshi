@@ -4,11 +4,7 @@ import android.content.Context
 import java.io.InputStream
 import java.util.zip.ZipInputStream
 
-/**
- * 工厂与文本提取工具。
- * PDF / 图片 走专门实现；TXT / DOCX 统一抽取为纯文本后交给文本分页渲染。
- * 旧版二进制 .doc（OLE 格式）目前不可靠，返回 null 由上层提示。
- */
+// 按类型挑加载器；txt/docx 先抽成纯文本再走文本分页，老 .doc 不支持。
 object DocumentSourceFactory {
 
     fun open(context: Context, file: PrintFile): DocumentSource? {
@@ -61,16 +57,13 @@ object TextExtractor {
         }
     }
 
-    /** 极简 DOCX XML 转纯文本：段落换行 + 抓 w:t 文本 + 反转义，并做简单中文断句 */
+    // 极简陋的 DOCX 转纯文本：补换行、剥标签、反转义
     private fun parseDocxXml(xml: String): String {
-        // 段落结束/单元格结束处补换行
         val withBreaks = xml
             .replace(Regex("<w:p[ >]"), "\n")
             .replace(Regex("</w:tab>"), "    ")
             .replace(Regex("</w:br>"), "\n")
-        // 去除所有标签
         val text = withBreaks.replace(Regex("<[^>]+>"), "")
-        // 反转义
         val unescaped = text
             .replace("&amp;", "&")
             .replace("&lt;", "<")
@@ -78,7 +71,6 @@ object TextExtractor {
             .replace("&quot;", "\"")
             .replace("&apos;", "'")
             .replace("&#160;", " ")
-        // 压缩多余空行，但保留段落结构
         return unescaped.replace(Regex("\n{3,}"), "\n\n").trim()
     }
 }

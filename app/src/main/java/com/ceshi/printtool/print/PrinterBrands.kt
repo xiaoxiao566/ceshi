@@ -1,16 +1,8 @@
 package com.ceshi.printtool.print
 
-/**
- * 常见打印机品牌与 USB 供应商 ID（vendor ID）。
- *
- * 说明：
- *  - 无线打印（Android 系统打印框架 + IPP / Mopria / 各品牌打印插件）对下表所有品牌
- *    都适用，无需依赖本表；这也是彩色喷墨、主机型等复杂机型最可靠的路径。
- *  - 本表仅用于 USB / OTG 直连打印时的品牌识别与协议路由。
- */
+// 几个常见厂商的 VID，OTG 直连时认品牌用；无线打印根本用不上这张表。
 object PrinterBrands {
 
-    // 常见厂商 Vendor ID（IEEE 分配的官方 USB vendor ID）
     const val HP = 0x03F0
     const val CANON = 0x04A9
     const val EPSON = 0x04B8
@@ -35,9 +27,7 @@ object PrinterBrands {
         DELL to "Dell（戴尔）"
     )
 
-    /** 依据 vendorId 返回品牌中文名；未知返回 null */
     fun brandName(vendorId: Int): String? = NAMES[vendorId]
 
-    /** 是否为已知品牌（用于展示与路由） */
     fun isKnownVendor(vendorId: Int): Boolean = NAMES.containsKey(vendorId)
 }

@@ -4,14 +4,14 @@
     <string name="btn_clear">清空</string>
     <string name="btn_print_wifi">无线打印</string>
     <string name="btn_print_otg">USB/OTG 打印</string>
-    <string name="hint_empty">还没有选择文件，请点击「添加文件」选择 PDF、图片、文本或 Word 文档</string>
+    <string name="hint_empty">还没选文件，点「添加文件」挑个 PDF、图片、文本或 Word</string>
     <string name="format_pdf">PDF</string>
     <string name="format_image">图片</string>
     <string name="format_text">文本</string>
     <string name="format_docx">Word</string>
     <string name="format_unsupported">不支持</string>
-    <string name="msg_pick_failed">文件打开失败</string>
-    <string name="msg_unsupported">暂不支持该文件格式：请使用 PDF、图片(JPG/PNG)、文本(TXT) 或 Word(.docx)</string>
+    <string name="msg_pick_failed">文件没打开成功</string>
+    <string name="msg_unsupported">这格式不支持，换个 PDF、图片、TXT 或 .docx 试试</string>
     <string name="options_title">打印选项</string>
     <string name="option_duplex">双面打印</string>
     <string name="option_copies">份数</string>

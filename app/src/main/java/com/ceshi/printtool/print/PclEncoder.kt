@@ -4,12 +4,8 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import java.io.ByteArrayOutputStream
 
-/**
- * PCL5 单色栅格编码器。
- *
- * 适用于具备 PCL 解释器的常见 USB 激光打印机（Brother/Pantum/Kyocera 等众多
- * 打印机类设备都兼容 PCL5）。将位图按亮度阈值转为 1-bit 点阵，按行发送。
- */
+// PCL5 单色编码。带 PCL 解释器的激光机（Brother/京瓷/得力这些）基本都吃这套，
+// 就是把位图按亮度压成 1-bit 点阵，一行一行送过去。
 object PclEncoder {
 
     private const val ESC = '\u001b'
@@ -30,9 +26,9 @@ object PclEncoder {
             out.write(s.toByteArray(Charsets.US_ASCII))
         }
 
-        // 通用退出语言 / 复位
+        // 先退出当前语言、复位一下
         cmd("${ESC}%-12345X")
-        // 页面方向与边距
+        // 朝向和边距
         cmd("${ESC}&l0O")                                   // 纵向
         cmd(if (duplex) "${ESC}&l1S" else "${ESC}&l0S")     // 双面（长边装订）/ 单面
         cmd("${ESC}&l${copies.coerceIn(1, 99)}X")           // 份数

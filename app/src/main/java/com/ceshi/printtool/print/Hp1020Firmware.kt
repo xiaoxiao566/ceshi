@@ -8,25 +8,13 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-/**
- * HP LaserJet 1020 固件处理。
- *
- * 该机型是「主机型（GDI）」打印机，ROM 极小、无内置固件，每次上电/连接都必须先
- * 上传固件 `sihp1020.dl` 才能通信（与 foo2zjs 的做法一致）：
- *   1. 先从应用 assets/firmware/ 或网络获取固件；
- *   2. 通过 USB bulk OUT 端点逐块写入；
- *   3. 打印机收到固件后自行复位并重新枚举，之后才可接收打印数据。
- */
+// 1020 没内置固件，每次通电都得先把 sihp1020.dl 塞进去才能用，跟 foo2zjs 一个套路。
 object Hp1020Firmware {
 
     const val FIRMWARE_NAME = "sihp1020.dl"
     private const val ASSET_PATH = "firmware/$FIRMWARE_NAME"
 
-    /**
-     * 固件下载源（按顺序回退）。
-     * HP 官方源已失效，foo2zjs `./getweb 1020` 的旧 vuji/flickr 地址也已不可用，
-     * 这里使用经过验证的社区镜像（HTTP 200，约 126KB）。
-     */
+    // 老地址基本都挂了，留几个镜像挨个试。
     private val FIRMWARE_URLS = listOf(
         "https://raw.githubusercontent.com/FZJ-SDU/hp-laserjet-1020-plus-macos-driver/main/sihp1020.dl",
         "https://raw.githubusercontent.com/koenkooi/foo2zjs/master/firmware/sihp1020.dl",
@@ -35,10 +23,9 @@ object Hp1020Firmware {
 
     fun firmwareFile(context: Context): File = File(context.filesDir, FIRMWARE_NAME)
 
-    /** 固件是否已就绪 */
     fun isReady(context: Context): Boolean = firmwareFile(context).length() > 0
 
-    /** 获取固件本地文件（优先内置 assets，其次联网下载）；失败返回 null */
+    // 先试内置 assets，没有就联网下，拿不到就返回 null
     fun ensure(context: Context): File? {
         val file = firmwareFile(context)
         if (file.length() > 0) return file
@@ -48,7 +35,7 @@ object Hp1020Firmware {
             }
             if (file.length() > 0) return file
         } catch (_: Exception) {
-            // 无内置固件，尝试下载
+            // 没内置，走下载
         }
         return try {
             download(FIRMWARE_URLS, file)
@@ -62,7 +49,7 @@ object Hp1020Firmware {
             try {
                 downloadOne(url, dest)?.let { return it }
             } catch (_: Exception) {
-                // 尝试下一个镜像
+                // 换个镜像再试
             }
         }
         return null
@@ -84,7 +71,7 @@ object Hp1020Firmware {
         }
     }
 
-    /** 逐块上传固件，成功返回 true */
+    // 分块写进去
     fun upload(connection: UsbDeviceConnection, out: UsbEndpoint, firmware: File): Boolean {
         val buf = ByteArray(16384)
         return try {

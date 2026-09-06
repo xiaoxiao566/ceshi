@@ -8,7 +8,7 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import kotlin.math.min
 
-/** 基于 Android PdfRenderer 的 PDF 渲染 */
+// PDF，直接用系统的 PdfRenderer 一页页画
 class PdfDocumentSource private constructor(
     private val renderer: PdfRenderer
 ) : DocumentSource {

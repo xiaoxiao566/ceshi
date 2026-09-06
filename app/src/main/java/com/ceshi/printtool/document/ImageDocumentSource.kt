@@ -9,7 +9,7 @@ import android.graphics.RectF
 import android.net.Uri
 import kotlin.math.min
 
-/** 图片渲染（JPG / PNG / GIF / WebP / BMP） */
+// 图片，JPG/PNG/GIF/WebP/BMP 都算，一页搞定
 class ImageDocumentSource private constructor(
     private val bitmap: Bitmap
 ) : DocumentSource {

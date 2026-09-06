@@ -1,13 +1,6 @@
 package com.ceshi.printtool.print
 
-/**
- * 打印选项（无线与 USB/OTG 共用）。
- *
- * @param duplex    是否双面打印
- * @param copies    份数（1–99）
- * @param paperSize 纸张大小："A4" / "Letter" / "Legal"
- * @param color     是否彩色（false = 黑白）；OTG 的 PCL5 后端目前仅支持单色
- */
+// 打印选项，无线和 OTG 通用。PCL5 那路现在只能打黑白，所以“彩色”对 USB 直连暂时没差。
 data class PrintOptions(
     val duplex: Boolean = false,
     val copies: Int = 1,

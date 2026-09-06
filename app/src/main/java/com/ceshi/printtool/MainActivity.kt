@@ -20,6 +20,7 @@ import com.ceshi.printtool.document.FileClassifier
 import com.ceshi.printtool.document.PrintFile
 import com.ceshi.printtool.print.OtgPrintManager
 import com.ceshi.printtool.print.PrintOptions
+import com.ceshi.printtool.print.PrintResult
 import com.ceshi.printtool.print.WirelessPrintHelper
 import com.google.android.material.button.MaterialButton
 
@@ -115,7 +116,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addTextShare(text: String) {
-        // 分享的纯文本拆成临时文件过于繁琐，这里提示改用文件方式
+        // 分享纯文本还得先转成临时文件，有点绕，干脆让用户改成发文件
         Toast.makeText(this, "请以文件方式分享文本（.txt）后再打印", Toast.LENGTH_LONG).show()
     }
 
@@ -188,9 +189,9 @@ class MainActivity : AppCompatActivity() {
             ?: run { Toast.makeText(this, R.string.msg_pick_failed, Toast.LENGTH_SHORT).show(); return }
         otgPrint.print(source, f.name, currentOptions()) { result ->
             val text = when (result) {
-                is com.ceshi.printtool.print.PrintResult.Success -> result.message
-                is com.ceshi.printtool.print.PrintResult.Failure -> "失败：${result.message}"
-                is com.ceshi.printtool.print.PrintResult.Info -> result.message
+                is PrintResult.Success -> result.message
+                is PrintResult.Failure -> "失败：${result.message}"
+                is PrintResult.Info -> result.message
             }
             runOnUiThread { Toast.makeText(this, text, Toast.LENGTH_LONG).show() }
         }

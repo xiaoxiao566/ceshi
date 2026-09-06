@@ -23,19 +23,8 @@ sealed class PrintResult {
     data class Info(val message: String) : PrintResult()
 }
 
-/**
- * OTG / USB 直连打印。
- *
- * 按识别到的品牌/后端路由：
- *  - PCL：绝大多数激光打印机（HP/Brother/Canon/Samsung/Kyocera/Lexmark/Xerox/Ricoh 等）
- *    走 PCL5 单色栅格，逐页发送；
- *  - HP 主机型 GDI（LaserJet 1020 等）：先上传固件复位，等待重新枚举后（接入 ZJS 编码）发送栅格。
- *
- * 彩色喷墨（Epson/Canon 家用喷墨）及 Canon UFR / Samsung SPL 等专有主机型协议，
- * 建议改用无线打印（系统打印框架 + IPP，已完整支持）。
- *
- * 页面以 A4 @300dpi 渲染。
- */
+// OTG 直连打印。按认出来的机型走：普通激光给 PCL5，HP 1020 先推固件。
+// 页面统一按 A4@300dpi 画。
 class OtgPrintManager(private val context: Context) {
 
     companion object {
@@ -55,21 +44,20 @@ class OtgPrintManager(private val context: Context) {
     fun isUsbHostSupported(): Boolean =
         context.packageManager.hasSystemFeature(PackageManager.FEATURE_USB_HOST)
 
-    /** 发起一次 OTG 打印；结果通过回调返回（可能在后台线程） */
     fun print(source: DocumentSource, jobName: String, options: PrintOptions = PrintOptions(), onResult: (PrintResult) -> Unit) {
         val printers = UsbPrinterDetector.detect(usbManager)
         if (printers.isEmpty()) {
-            onResult(PrintResult.Failure("未检测到 USB 打印机：请确认打印机已开机并通过 OTG 线连接"))
+            onResult(PrintResult.Failure("没找到 USB 打印机，看下是不是没开机或者 OTG 没插好"))
             source.close()
             return
         }
-        // 优先 HP 主机型（需固件），否则取第一台
+        // 有 HP 主机型就先用它
         val info = printers.firstOrNull { it.backend == Backend.HP_HOST_BASED_ZJS } ?: printers.first()
         withPermission(info.device) { granted ->
             if (granted) {
                 executor.execute { doPrint(info, source, options, onResult) }
             } else {
-                onResult(PrintResult.Failure("未获得「${info.brand}」的 USB 设备访问权限"))
+                onResult(PrintResult.Failure("没拿到「${info.brand}」的 USB 权限"))
                 source.close()
             }
         }
@@ -108,11 +96,11 @@ class OtgPrintManager(private val context: Context) {
     ) {
         try {
             when (info.backend) {
-                Backend.HP_HOST_BASED_ZJS -> printHpHostBased(info, source, onResult)
+                Backend.HP_HOST_BASED_ZJS -> printHpHostBased(info, source, options, onResult)
                 Backend.PCL -> printPcl(info, source, options, onResult)
             }
         } catch (e: UnsupportedOperationException) {
-            onResult(PrintResult.Info(e.message ?: "「${info.brand}」该打印后端尚未支持"))
+            onResult(PrintResult.Info(e.message ?: "「${info.brand}」这个还打不了"))
         } catch (e: Exception) {
             onResult(PrintResult.Failure("${info.brand} 打印失败：${e.message ?: e.javaClass.simpleName}"))
         } finally {
@@ -120,51 +108,49 @@ class OtgPrintManager(private val context: Context) {
         }
     }
 
-    /**
-     * HP 主机型 GDI（如 1020）：上传固件 → 复位 →（接入 ZJS 后）发送栅格。
-     */
     private fun printHpHostBased(
         info: PrinterInfo,
         source: DocumentSource,
+        options: PrintOptions,
         onResult: (PrintResult) -> Unit
     ) {
         val fw = Hp1020Firmware.ensure(context)
             ?: run {
-                onResult(PrintResult.Failure("${info.brand} 需要固件 ${Hp1020Firmware.FIRMWARE_NAME}，请联网后重试"))
+                onResult(PrintResult.Failure("${info.brand} 得先下固件 ${Hp1020Firmware.FIRMWARE_NAME}，联网再试"))
                 return
             }
 
-        var conn = openWithInterface(info.device) ?: run { onResult(PrintResult.Failure("无法打开 USB 设备")); return }
+        var conn = openWithInterface(info.device) ?: run { onResult(PrintResult.Failure("USB 设备打不开")); return }
         val uploaded = try {
             Hp1020Firmware.upload(conn.first, conn.second, fw)
         } finally {
             closeQuietly(conn.first, conn.third)
         }
         if (!uploaded) {
-            onResult(PrintResult.Failure("${info.brand} 固件上传失败"))
+            onResult(PrintResult.Failure("${info.brand} 固件没推上去"))
             return
         }
 
         Thread.sleep(RESET_WAIT_MS)
         val ready = openWithInterface(info.device)
         if (ready == null) {
-            onResult(PrintResult.Info("已向 ${info.brand} 上传固件并完成复位。"))
+            onResult(PrintResult.Info("固件推给了 ${info.brand}，它自己重启了一下。"))
             return
         }
         try {
-            val bmp = source.renderPage(0, A4_WIDTH_PX, A4_HEIGHT_PX)
-            val data = ZjsEncoder.encodeMonochrome(bmp, OTG_DPI)
-            bmp.recycle()
-            sendAll(ready.first, ready.second, data)
-            onResult(PrintResult.Success("已向 ${info.brand} 发送打印数据"))
+            val data = ZjsEncoder.encodeDocument(source, options)
+            if (!sendAll(ready.first, ready.second, data)) {
+                onResult(PrintResult.Failure("${info.brand} 数据传一半断了"))
+                return
+            }
+            onResult(PrintResult.Success("往 ${info.brand} 发了 ${source.pageCount} 页（ZjStream）"))
         } finally {
             closeQuietly(ready.first, ready.third)
         }
     }
 
-    /** PCL 打印机：逐页渲染 → PCL5 单色 → 发送 */
     private fun printPcl(info: PrinterInfo, source: DocumentSource, options: PrintOptions, onResult: (PrintResult) -> Unit) {
-        val open = openWithInterface(info.device) ?: run { onResult(PrintResult.Failure("无法打开 USB 设备")); return }
+        val open = openWithInterface(info.device) ?: run { onResult(PrintResult.Failure("USB 设备打不开")); return }
         val conn = open.first
         val out = open.second
         val intf = open.third
@@ -175,15 +161,15 @@ class OtgPrintManager(private val context: Context) {
                 val data = PclEncoder.encodeMonochrome(bmp, OTG_DPI, options.paperSize, options.copies, options.duplex)
                 bmp.recycle()
                 if (!sendAll(conn, out, data)) {
-                    onResult(PrintResult.Failure("数据传输中断（第 ${p + 1} 页）"))
+                    onResult(PrintResult.Failure("第 ${p + 1} 页数据断了"))
                     return
                 }
                 sent++
             }
             onResult(
                 PrintResult.Success(
-                    "已发送 $sent 页到 ${info.brand}（PCL）。" +
-                        if (info.brand.startsWith("Epson")) " 若为爱普生喷墨机型请改用无线打印。" else ""
+                    "往 ${info.brand} 发了 $sent 页（PCL）。" +
+                        if (info.brand.startsWith("Epson")) "爱普生喷墨的话还是走无线吧。" else ""
                 )
             )
         } finally {
@@ -191,7 +177,7 @@ class OtgPrintManager(private val context: Context) {
         }
     }
 
-    // ---------- USB IO 工具 ----------
+    // --- 一些 USB 读写的小函数 ---
 
     private fun findPrinterInterface(device: UsbDevice): UsbInterface? {
         for (i in 0 until device.interfaceCount) {
@@ -211,7 +197,6 @@ class OtgPrintManager(private val context: Context) {
         return null
     }
 
-    /** 打开设备并占用打印接口，返回 (connection, bulkOut, interface) */
     private fun openWithInterface(device: UsbDevice): Triple<UsbDeviceConnection, UsbEndpoint, UsbInterface>? {
         val intf = findPrinterInterface(device) ?: return null
         val out = findBulkOut(intf) ?: return null

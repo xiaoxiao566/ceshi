@@ -14,11 +14,8 @@ import android.print.PrintManager
 import com.ceshi.printtool.document.DocumentSource
 import java.io.FileOutputStream
 
-/**
- * 无线打印：基于系统打印框架（Print Framework）。
- * 系统会弹出打印对话框，可交给任何已注册的打印服务（Mopria / IPP / 各品牌打印插件），
- * 从而通过网络打印到支持 IPP 的打印机（含 HP 网络打印机）。
- */
+// 无线打印：直接甩给系统打印框架。系统会弹打印框，Mopria / IPP / 各品牌插件都能接，
+// 支持 IPP 的网络打印机基本都能打（含 HP 的网络机型）。
 class WirelessPrintHelper(private val context: Context) {
 
     fun print(source: DocumentSource, jobName: String, options: PrintOptions = PrintOptions()) {

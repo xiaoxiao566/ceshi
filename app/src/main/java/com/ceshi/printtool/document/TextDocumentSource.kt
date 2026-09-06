@@ -7,13 +7,8 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import kotlin.math.roundToInt
 
-/**
- * 文本分页渲染。
- *
- * 先在「标准 A4 @300dpi」逻辑尺寸下做一次排版（换行 + 分页），
- * 得到固定的页数与每页的行集合；渲染时按目标宽度等比缩放绘制，
- * 保证无线打印与 OTG 打印的排版一致。
- */
+// 文本分页。先按 A4@300dpi 的逻辑尺寸排一遍（换行+分页），页数就固定了；
+// 画的时候再等比缩到目标尺寸，无线和 OTG 出来的是同一版排版。
 class TextDocumentSource private constructor(
     private val pages: List<List<String>>
 ) : DocumentSource {
