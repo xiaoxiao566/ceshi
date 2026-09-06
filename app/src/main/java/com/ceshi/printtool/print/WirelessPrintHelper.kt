@@ -21,10 +21,17 @@ import java.io.FileOutputStream
  */
 class WirelessPrintHelper(private val context: Context) {
 
-    fun print(source: DocumentSource, jobName: String) {
+    fun print(source: DocumentSource, jobName: String, options: PrintOptions = PrintOptions()) {
         val pm = context.getSystemService(Context.PRINT_SERVICE) as PrintManager
+        val media = when (options.paperSize) {
+            "Letter" -> PrintAttributes.MediaSize.NA_LETTER
+            "Legal" -> PrintAttributes.MediaSize.NA_LEGAL
+            else -> PrintAttributes.MediaSize.ISO_A4
+        }
         val attrs = PrintAttributes.Builder()
-            .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+            .setMediaSize(media)
+            .setColorMode(if (options.color) PrintAttributes.COLOR_MODE_COLOR else PrintAttributes.COLOR_MODE_MONOCHROME)
+            .setDuplexMode(if (options.duplex) PrintAttributes.DUPLEX_MODE_LONG_EDGE else PrintAttributes.DUPLEX_MODE_NONE)
             .build()
         pm.print(jobName, SourcePrintAdapter(source, jobName), attrs)
     }

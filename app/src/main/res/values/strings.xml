@@ -12,4 +12,18 @@
     <string name="format_unsupported">不支持</string>
     <string name="msg_pick_failed">文件打开失败</string>
     <string name="msg_unsupported">暂不支持该文件格式：请使用 PDF、图片(JPG/PNG)、文本(TXT) 或 Word(.docx)</string>
+    <string name="options_title">打印选项</string>
+    <string name="option_duplex">双面打印</string>
+    <string name="option_copies">份数</string>
+    <string name="option_paper">纸张</string>
+    <string name="option_color">颜色</string>
+    <string-array name="paper_sizes">
+        <item>A4</item>
+        <item>Letter</item>
+        <item>Legal</item>
+    </string-array>
+    <string-array name="color_modes">
+        <item>彩色</item>
+        <item>黑白</item>
+    </string-array>
 </resources>

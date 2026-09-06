@@ -56,7 +56,7 @@ class OtgPrintManager(private val context: Context) {
         context.packageManager.hasSystemFeature(PackageManager.FEATURE_USB_HOST)
 
     /** 发起一次 OTG 打印；结果通过回调返回（可能在后台线程） */
-    fun print(source: DocumentSource, jobName: String, onResult: (PrintResult) -> Unit) {
+    fun print(source: DocumentSource, jobName: String, options: PrintOptions = PrintOptions(), onResult: (PrintResult) -> Unit) {
         val printers = UsbPrinterDetector.detect(usbManager)
         if (printers.isEmpty()) {
             onResult(PrintResult.Failure("未检测到 USB 打印机：请确认打印机已开机并通过 OTG 线连接"))
@@ -67,7 +67,7 @@ class OtgPrintManager(private val context: Context) {
         val info = printers.firstOrNull { it.backend == Backend.HP_HOST_BASED_ZJS } ?: printers.first()
         withPermission(info.device) { granted ->
             if (granted) {
-                executor.execute { doPrint(info, source, jobName, onResult) }
+                executor.execute { doPrint(info, source, options, onResult) }
             } else {
                 onResult(PrintResult.Failure("未获得「${info.brand}」的 USB 设备访问权限"))
                 source.close()
@@ -103,13 +103,13 @@ class OtgPrintManager(private val context: Context) {
     private fun doPrint(
         info: PrinterInfo,
         source: DocumentSource,
-        jobName: String,
+        options: PrintOptions,
         onResult: (PrintResult) -> Unit
     ) {
         try {
             when (info.backend) {
                 Backend.HP_HOST_BASED_ZJS -> printHpHostBased(info, source, onResult)
-                Backend.PCL -> printPcl(info, source, onResult)
+                Backend.PCL -> printPcl(info, source, options, onResult)
             }
         } catch (e: UnsupportedOperationException) {
             onResult(PrintResult.Info(e.message ?: "「${info.brand}」该打印后端尚未支持"))
@@ -163,7 +163,7 @@ class OtgPrintManager(private val context: Context) {
     }
 
     /** PCL 打印机：逐页渲染 → PCL5 单色 → 发送 */
-    private fun printPcl(info: PrinterInfo, source: DocumentSource, onResult: (PrintResult) -> Unit) {
+    private fun printPcl(info: PrinterInfo, source: DocumentSource, options: PrintOptions, onResult: (PrintResult) -> Unit) {
         val open = openWithInterface(info.device) ?: run { onResult(PrintResult.Failure("无法打开 USB 设备")); return }
         val conn = open.first
         val out = open.second
@@ -172,7 +172,7 @@ class OtgPrintManager(private val context: Context) {
             var sent = 0
             for (p in 0 until source.pageCount) {
                 val bmp = source.renderPage(p, A4_WIDTH_PX, A4_HEIGHT_PX)
-                val data = PclEncoder.encodeMonochrome(bmp, OTG_DPI, "A4")
+                val data = PclEncoder.encodeMonochrome(bmp, OTG_DPI, options.paperSize, options.copies, options.duplex)
                 bmp.recycle()
                 if (!sendAll(conn, out, data)) {
                     onResult(PrintResult.Failure("数据传输中断（第 ${p + 1} 页）"))

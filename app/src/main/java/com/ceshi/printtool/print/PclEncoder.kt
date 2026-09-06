@@ -14,7 +14,13 @@ object PclEncoder {
 
     private const val ESC = '\u001b'
 
-    fun encodeMonochrome(bitmap: Bitmap, dpi: Int, pageSize: String = "A4"): ByteArray {
+    fun encodeMonochrome(
+        bitmap: Bitmap,
+        dpi: Int,
+        pageSize: String = "A4",
+        copies: Int = 1,
+        duplex: Boolean = false
+    ): ByteArray {
         val w = bitmap.width
         val h = bitmap.height
         val bytesPerRow = (w + 7) / 8
@@ -27,9 +33,15 @@ object PclEncoder {
         // 通用退出语言 / 复位
         cmd("${ESC}%-12345X")
         // 页面方向与边距
-        cmd("${ESC}&l0O")                       // 纵向
-        cmd("${ESC}&l0E")                       // 上边距 0
-        cmd(if (pageSize == "A4") "${ESC}&l26A" else "${ESC}&l2A") // A4 / Letter
+        cmd("${ESC}&l0O")                                   // 纵向
+        cmd(if (duplex) "${ESC}&l1S" else "${ESC}&l0S")     // 双面（长边装订）/ 单面
+        cmd("${ESC}&l${copies.coerceIn(1, 99)}X")           // 份数
+        cmd("${ESC}&l0E")                                   // 上边距 0
+        cmd(when (pageSize) {                               // 纸张大小
+            "Letter" -> "${ESC}&l2A"
+            "Legal" -> "${ESC}&l3A"
+            else -> "${ESC}&l26A"
+        })
         // 栅格参数
         cmd("${ESC}*t${dpi}R")                  // 栅格分辨率
         cmd("${ESC}*b0M")                       // 无压缩

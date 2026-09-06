@@ -6,7 +6,10 @@ import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.CheckBox
+import android.widget.EditText
 import android.widget.ListView
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,6 +19,7 @@ import com.ceshi.printtool.document.DocumentSourceFactory
 import com.ceshi.printtool.document.FileClassifier
 import com.ceshi.printtool.document.PrintFile
 import com.ceshi.printtool.print.OtgPrintManager
+import com.ceshi.printtool.print.PrintOptions
 import com.ceshi.printtool.print.WirelessPrintHelper
 import com.google.android.material.button.MaterialButton
 
@@ -29,6 +33,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: ArrayAdapter<String>
     private lateinit var otgPrint: OtgPrintManager
     private lateinit var wifiPrint: WirelessPrintHelper
+
+    private lateinit var duplexCheck: CheckBox
+    private lateinit var copiesInput: EditText
+    private lateinit var paperSpinner: Spinner
+    private lateinit var colorSpinner: Spinner
 
     private val pickFiles =
         registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -53,6 +62,17 @@ class MainActivity : AppCompatActivity() {
 
         otgPrint = OtgPrintManager(this)
         wifiPrint = WirelessPrintHelper(this)
+
+        duplexCheck = findViewById(R.id.duplexCheck)
+        copiesInput = findViewById(R.id.copiesInput)
+        paperSpinner = findViewById(R.id.paperSpinner)
+        colorSpinner = findViewById(R.id.colorSpinner)
+        ArrayAdapter.createFromResource(this, R.array.paper_sizes, android.R.layout.simple_spinner_item)
+            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            .also { paperSpinner.adapter = it }
+        ArrayAdapter.createFromResource(this, R.array.color_modes, android.R.layout.simple_spinner_item)
+            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            .also { colorSpinner.adapter = it }
 
         findViewById<MaterialButton>(R.id.btnAddFiles).setOnClickListener {
             pickFiles.launch(arrayOf("*/*"))
@@ -135,11 +155,27 @@ class MainActivity : AppCompatActivity() {
         return files[selectedIndex]
     }
 
+    private fun currentOptions(): PrintOptions {
+        val paper = when (paperSpinner.selectedItemPosition) {
+            1 -> "Letter"
+            2 -> "Legal"
+            else -> "A4"
+        }
+        val color = colorSpinner.selectedItemPosition == 0
+        val copies = copiesInput.text.toString().toIntOrNull()?.coerceIn(1, 99) ?: 1
+        return PrintOptions(
+            duplex = duplexCheck.isChecked,
+            copies = copies,
+            paperSize = paper,
+            color = color
+        )
+    }
+
     private fun printWifi() {
         val f = selectedFile() ?: return
         val source = DocumentSourceFactory.open(this, f)
             ?: run { Toast.makeText(this, R.string.msg_pick_failed, Toast.LENGTH_SHORT).show(); return }
-        wifiPrint.print(source, f.name)
+        wifiPrint.print(source, f.name, currentOptions())
     }
 
     private fun printOtg() {
@@ -150,7 +186,7 @@ class MainActivity : AppCompatActivity() {
         }
         val source = DocumentSourceFactory.open(this, f)
             ?: run { Toast.makeText(this, R.string.msg_pick_failed, Toast.LENGTH_SHORT).show(); return }
-        otgPrint.print(source, f.name) { result ->
+        otgPrint.print(source, f.name, currentOptions()) { result ->
             val text = when (result) {
                 is com.ceshi.printtool.print.PrintResult.Success -> result.message
                 is com.ceshi.printtool.print.PrintResult.Failure -> "失败：${result.message}"
