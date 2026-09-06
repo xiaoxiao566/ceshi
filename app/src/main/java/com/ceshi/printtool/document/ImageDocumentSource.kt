@@ -37,8 +37,7 @@ class ImageDocumentSource private constructor(
         fun open(context: Context, uri: Uri): ImageDocumentSource? {
             return try {
                 context.contentResolver.openInputStream(uri)?.use { ins ->
-                    val opts = BitmapFactory.Options().apply { inSampleSize = 1 }
-                    val bmp = BitmapFactory.decodeStream(ins, null, opts)
+                    val bmp = BitmapFactory.decodeStream(ins)
                     bmp?.let { ImageDocumentSource(it) }
                 }
             } catch (e: Exception) {

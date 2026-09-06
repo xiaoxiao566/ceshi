@@ -20,6 +20,7 @@ import com.ceshi.printtool.document.FileClassifier
 import com.ceshi.printtool.document.PrintFile
 import com.ceshi.printtool.print.OtgPrintManager
 import com.ceshi.printtool.print.PrintOptions
+import com.ceshi.printtool.print.PrintResult
 import com.ceshi.printtool.print.WirelessPrintHelper
 import com.google.android.material.button.MaterialButton
 
@@ -67,12 +68,18 @@ class MainActivity : AppCompatActivity() {
         copiesInput = findViewById(R.id.copiesInput)
         paperSpinner = findViewById(R.id.paperSpinner)
         colorSpinner = findViewById(R.id.colorSpinner)
-        ArrayAdapter.createFromResource(this, R.array.paper_sizes, android.R.layout.simple_spinner_item)
-            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-            .also { paperSpinner.adapter = it }
-        ArrayAdapter.createFromResource(this, R.array.color_modes, android.R.layout.simple_spinner_item)
-            .also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-            .also { colorSpinner.adapter = it }
+        // 纸张、颜色两个下拉框
+        val paperAdapter = ArrayAdapter.createFromResource(
+            this, R.array.paper_sizes, android.R.layout.simple_spinner_item
+        )
+        paperAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        paperSpinner.adapter = paperAdapter
+
+        val colorAdapter = ArrayAdapter.createFromResource(
+            this, R.array.color_modes, android.R.layout.simple_spinner_item
+        )
+        colorAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        colorSpinner.adapter = colorAdapter
 
         findViewById<MaterialButton>(R.id.btnAddFiles).setOnClickListener {
             pickFiles.launch(arrayOf("*/*"))
@@ -188,9 +195,9 @@ class MainActivity : AppCompatActivity() {
             ?: run { Toast.makeText(this, R.string.msg_pick_failed, Toast.LENGTH_SHORT).show(); return }
         otgPrint.print(source, f.name, currentOptions()) { result ->
             val text = when (result) {
-                is com.ceshi.printtool.print.PrintResult.Success -> result.message
-                is com.ceshi.printtool.print.PrintResult.Failure -> "失败：${result.message}"
-                is com.ceshi.printtool.print.PrintResult.Info -> result.message
+                is PrintResult.Success -> result.message
+                is PrintResult.Failure -> "失败：${result.message}"
+                is PrintResult.Info -> result.message
             }
             runOnUiThread { Toast.makeText(this, text, Toast.LENGTH_LONG).show() }
         }
