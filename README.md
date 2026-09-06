@@ -55,7 +55,7 @@ HP LaserJet 1020 是典型的**「主机型 / GDI」打印机**（VID `0x03F0`�
 
 1. 在 Linux 上用 `foo2zjs`：`./getweb 1020`（自动从 HP 服务器下载）；
 2. 或手动下载后放到 App 内部存储目录（`/data/data/com.ceshi.printtool/files/sihp1020.dl`）；
-3. App 也会尝试从配置的镜像地址（`Hp1020Firmware.FIRMWARE_URL`）自动下载（可修改）。
+3. App 也会尝试从内置的镜像源列表自动下载（见 `Hp1020Firmware.kt` 中的 `FIRMWARE_URLS`，可修改）。
 
 ## 构建方法
 

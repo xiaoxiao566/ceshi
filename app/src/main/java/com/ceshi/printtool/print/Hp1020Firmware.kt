@@ -22,8 +22,16 @@ object Hp1020Firmware {
     const val FIRMWARE_NAME = "sihp1020.dl"
     private const val ASSET_PATH = "firmware/$FIRMWARE_NAME"
 
-    /** 社区镜像（foo2zjs 通常用 `./getweb 1020` 从 HP 服务器下载，此处提供镜像作为回退） */
-    const val FIRMWARE_URL = "http://foo2zjs.rkkda.com/firmware/sihp1020.dl"
+    /**
+     * 固件下载源（按顺序回退）。
+     * HP 官方源已失效，foo2zjs `./getweb 1020` 的旧 vuji/flickr 地址也已不可用，
+     * 这里使用经过验证的社区镜像（HTTP 200，约 126KB）。
+     */
+    private val FIRMWARE_URLS = listOf(
+        "https://raw.githubusercontent.com/FZJ-SDU/hp-laserjet-1020-plus-macos-driver/main/sihp1020.dl",
+        "https://raw.githubusercontent.com/koenkooi/foo2zjs/master/firmware/sihp1020.dl",
+        "http://foo2zjs.rkkda.com/firmware/sihp1020.dl"
+    )
 
     fun firmwareFile(context: Context): File = File(context.filesDir, FIRMWARE_NAME)
 
@@ -43,13 +51,24 @@ object Hp1020Firmware {
             // 无内置固件，尝试下载
         }
         return try {
-            download(context, FIRMWARE_URL, file)
+            download(FIRMWARE_URLS, file)
         } catch (e: Exception) {
             null
         }
     }
 
-    private fun download(context: Context, url: String, dest: File): File? {
+    private fun download(urls: List<String>, dest: File): File? {
+        for (url in urls) {
+            try {
+                downloadOne(url, dest)?.let { return it }
+            } catch (_: Exception) {
+                // 尝试下一个镜像
+            }
+        }
+        return null
+    }
+
+    private fun downloadOne(url: String, dest: File): File? {
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.connectTimeout = 20000
         conn.readTimeout = 30000
