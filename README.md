@@ -6,7 +6,7 @@
 
 - **文档格式**：PDF、图片（JPG/PNG/GIF/WebP/BMP）、纯文本（TXT/MD/CSV 等）、Word（.docx）
 - **无线打印**：基于系统打印框架（Print Framework），可交给任意已安装的打印服务（Mopria、IPP、各品牌打印插件）打印到网络打印机
-- **OTG 打印**：USB Host 直连打印机，支持常见 PCL5 激光打印机；针对 HP LaserJet 1020 提供固件上传与设备通信
+- **OTG 打印**：USB Host 直连打印机，自动识别常见品牌（HP/Canon/Epson/Brother/Samsung/Kyocera/Lexmark/Xerox/Ricoh/Dell 等），激光机型走 PCL5；针对 HP LaserJet 1020 提供固件上传与设备通信
 - **支持文档预览与分页**、跨页渲染、A4 排版
 
 ## 系统要求
@@ -30,10 +30,27 @@
 
 ### 2. USB/OTG 打印
 
-通过 OTG 线连接打印机，App 使用 USB Host 直连：
+通过 OTG 线连接打印机，App 使用 USB Host 直连，自动按品牌/设备归类：
 
-- **常见 PCL5 打印机**：直接按 PCL5 单色栅格逐页发送（Brother / Pantum / Kyocera / HP PCL 机型等）
-- **HP LaserJet 1020**：见下文专节说明
+- **常见 PCL5 激光打印机**：直接按 PCL5 单色栅格逐页发送（HP PCL 机型 / Brother / Canon 激光 / Samsung / Kyocera / Lexmark / Xerox / Ricoh / Dell 等绝大多数激光机型）
+- **HP LaserJet 1020**：主机型，先上传固件，见下文专节说明
+
+### 品牌支持与打印方式对照
+
+| 品牌（vendor ID） | 无线（IPP/系统框架） | USB 直连（OTG） |
+| --- | --- | --- |
+| HP / 惠普 | ✅ 全机型 | ✅ PCL 激光机型；主机型（1020 等）固件上传+待接入 ZJS |
+| Canon / 佳能 | ✅ 全机型 | ✅ 支持 PCL 的激光机型；喷墨/UFR 机型建议无线 |
+| Epson / 爱普生 | ✅ 全机型 | 激光机型可尝试 PCL；喷墨建议无线 |
+| Brother / 兄弟 | ✅ 全机型 | ✅ PCL 激光机型 |
+| Samsung / 三星 | ✅ 全机型 | ✅ 支持 PCL 的激光机型 |
+| Kyocera / 京瓷 | ✅ 全机型 | ✅ PCL 激光机型 |
+| Lexmark / 利盟 | ✅ 全机型 | ✅ PCL 激光机型 |
+| Xerox / 施乐 | ✅ 全机型 | ✅ PCL 激光机型 |
+| Ricoh / 理光 | ✅ 全机型 | ✅ PCL 激光机型 |
+| Dell / 戴尔 | ✅ 全机型 | ✅ PCL 激光机型 |
+
+> 彩色喷墨、主机型（GDI）等专有协议机型，通过**无线打印**（系统打印框架 + 各品牌插件 / Mopria）即可覆盖全部常见品牌。
 
 ## HP LaserJet 1020 支持说明（重要）
 
@@ -81,7 +98,8 @@ app/src/main/java/com/ceshi/printtool/
 │   └── TextDocumentSource.kt    # 文本分页渲染
 └── print/
     ├── WirelessPrintHelper.kt   # 无线打印（Print Framework）
-    ├── UsbPrinterDetector.kt    # USB 打印机识别（含 HP 1020）
+    ├── UsbPrinterDetector.kt    # USB 打印机识别与协议归类
+    ├── PrinterBrands.kt         # 常见品牌 vendor ID 与名称
     ├── Hp1020Firmware.kt        # HP 1020 固件下载与上传
     ├── PclEncoder.kt            # PCL5 单色栅格编码
     ├── ZjsEncoder.kt            # ZjStream 编码（占位）
