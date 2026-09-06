@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.PrintTool" parent="Theme.Material3.DayNight" />
+</resources>

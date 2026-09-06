@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- HP 全系列：0x03F0 = 1008 -->
+    <usb-device vendor-id="1008" />
+    <!-- 通用打印机类设备 -->
+    <usb-device class="7" />
+</resources>
