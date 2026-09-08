@@ -1,155 +1,172 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/app_name"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="支持 PDF / 图片 / 文本 / Word，无线或 OTG 打印"
-        android:textSize="13sp"
-        android:layout_marginBottom="12dp" />
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAddFiles"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/btn_add_files" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnClear"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_clear" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/emptyHint"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="@string/hint_empty"
-        android:textSize="14sp"
-        android:gravity="center"
-        android:padding="24dp" />
-
-    <ListView
-        android:id="@+id/fileList"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:divider="@android:color/darker_gray"
-        android:dividerHeight="1dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/options_title"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:layout_marginTop="4dp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <CheckBox
-            android:id="@+id/duplexCheck"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/option_duplex" />
+        android:orientation="vertical"
+        android:padding="16dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:text="@string/option_copies"
-            android:textSize="14sp" />
-
-        <EditText
-            android:id="@+id/copiesInput"
-            android:layout_width="52dp"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:text="1"
-            android:importantForAutofill="no" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="4dp">
+            android:layout_marginBottom="8dp"
+            android:text="@string/app_name"
+            android:textSize="22sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:text="@string/option_paper"
+            android:layout_marginBottom="12dp"
+            android:text="支持 PDF / 图片 / 文本 / Word，无线或 OTG 打印"
+            android:textSize="13sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddFiles"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/btn_add_files" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnClear"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_clear" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/usbStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@android:drawable/dialog_holo_light_frame"
+            android:padding="8dp"
+            android:text="@string/usb_none"
+            android:textColor="@color/usb_status_text"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/emptyHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:padding="24dp"
+            android:text="@string/hint_empty"
             android:textSize="14sp" />
 
-        <Spinner
-            android:id="@+id/paperSpinner"
-            android:layout_width="0dp"
+        <ListView
+            android:id="@+id/fileList"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp" />
+            android:layout_marginTop="4dp"
+            android:divider="@android:color/darker_gray"
+            android:dividerHeight="1dp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:layout_marginStart="12dp"
-            android:text="@string/option_color"
-            android:textSize="14sp" />
+            android:layout_marginTop="8dp"
+            android:text="@string/options_title"
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
-        <Spinner
-            android:id="@+id/colorSpinner"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <CheckBox
+                android:id="@+id/duplexCheck"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/option_duplex" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:text="@string/option_copies"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/copiesInput"
+                android:layout_width="52dp"
+                android:layout_height="wrap_content"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:text="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:text="@string/option_paper"
+                android:textSize="14sp" />
+
+            <Spinner
+                android:id="@+id/paperSpinner"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_marginStart="12dp"
+                android:text="@string/option_color"
+                android:textSize="14sp" />
+
+            <Spinner
+                android:id="@+id/colorSpinner"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPrintWifi"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="@string/btn_print_wifi" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPrintOtg"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/btn_print_otg" />
+        </LinearLayout>
     </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="8dp">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnPrintWifi"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="6dp"
-            android:text="@string/btn_print_wifi" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnPrintOtg"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:text="@string/btn_print_otg" />
-    </LinearLayout>
-</LinearLayout>
+</androidx.core.widget.NestedScrollView>

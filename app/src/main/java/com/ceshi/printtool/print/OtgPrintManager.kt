@@ -12,10 +12,12 @@ import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbEndpoint
 import android.hardware.usb.UsbInterface
 import android.hardware.usb.UsbManager
+import androidx.core.content.ContextCompat
 import com.ceshi.printtool.document.DocumentSource
 import com.ceshi.printtool.print.UsbPrinterDetector.Backend
 import com.ceshi.printtool.print.UsbPrinterDetector.PrinterInfo
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
 sealed class PrintResult {
     data class Success(val message: String) : PrintResult()
@@ -40,19 +42,29 @@ class OtgPrintManager(private val context: Context) {
 
     private val executor = Executors.newSingleThreadExecutor()
     private var permissionReceiver: BroadcastReceiver? = null
+    private val permissionRequestCode = AtomicInteger(1)
+    private var deviceListenerReceiver: BroadcastReceiver? = null
 
     fun isUsbHostSupported(): Boolean =
         context.packageManager.hasSystemFeature(PackageManager.FEATURE_USB_HOST)
 
+    // 列出当前能直接用的 USB 打印机
+    fun detectPrinters(): List<PrinterInfo> = UsbPrinterDetector.detect(usbManager)
+
     fun print(source: DocumentSource, jobName: String, options: PrintOptions = PrintOptions(), onResult: (PrintResult) -> Unit) {
-        val printers = UsbPrinterDetector.detect(usbManager)
+        val printers = detectPrinters()
         if (printers.isEmpty()) {
             onResult(PrintResult.Failure("没找到 USB 打印机，看下是不是没开机或者 OTG 没插好"))
             source.close()
             return
         }
-        // 有 HP 主机型就先用它
+        // 有 HP 主机型就先用它，没有就用列表里第一台
         val info = printers.firstOrNull { it.backend == Backend.HP_HOST_BASED_ZJS } ?: printers.first()
+        print(info, source, jobName, options, onResult)
+    }
+
+    // 指定某台打印机打
+    fun print(info: PrinterInfo, source: DocumentSource, jobName: String, options: PrintOptions = PrintOptions(), onResult: (PrintResult) -> Unit) {
         withPermission(info.device) { granted ->
             if (granted) {
                 executor.execute { doPrint(info, source, options, onResult) }
@@ -60,6 +72,36 @@ class OtgPrintManager(private val context: Context) {
                 onResult(PrintResult.Failure("没拿到「${info.brand}」的 USB 权限"))
                 source.close()
             }
+        }
+    }
+
+    // 监听 USB 打印机插拔，返回一个关闭监听的函数，Context 销毁时记得调
+    fun listenForDeviceChanges(listener: () -> Unit): () -> Unit {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    UsbManager.ACTION_USB_DEVICE_ATTACHED,
+                    UsbManager.ACTION_USB_DEVICE_DETACHED -> listener()
+                }
+            }
+        }
+        deviceListenerReceiver = receiver
+        context.registerReceiver(
+            receiver,
+            IntentFilter().apply {
+                addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
+                addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+            }
+        )
+        return { unregisterReceiverSafely(receiver); deviceListenerReceiver?.let { if (it === receiver) deviceListenerReceiver = null } }
+    }
+
+    private fun unregisterReceiverSafely(receiver: BroadcastReceiver?) {
+        if (receiver == null) return
+        try {
+            context.unregisterReceiver(receiver)
+        } catch (_: IllegalArgumentException) {
+            // 已经注销过了，忽略
         }
     }
 
@@ -71,18 +113,27 @@ class OtgPrintManager(private val context: Context) {
         val action = ACTION_USB_PERMISSION
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context?, intent: Intent?) {
+                ctx ?: return
                 if (intent?.action == action) {
-                    ctx?.unregisterReceiver(this)
-                    permissionReceiver = null
+                    unregisterReceiverSafely(this)
+                    if (permissionReceiver === this) permissionReceiver = null
                     val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
                     callback(granted)
                 }
             }
         }
+        // 换新请求前把上一次的 receiver 清掉，避免积压
+        unregisterReceiverSafely(permissionReceiver)
         permissionReceiver = receiver
-        context.registerReceiver(receiver, IntentFilter(action))
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            IntentFilter(action),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        val code = permissionRequestCode.getAndIncrement()
         val pi = PendingIntent.getBroadcast(
-            context, 0, Intent(action),
+            context, code, Intent(action),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         usbManager.requestPermission(device, pi)

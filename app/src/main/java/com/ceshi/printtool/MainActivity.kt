@@ -13,6 +13,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.ceshi.printtool.document.DocType
 import com.ceshi.printtool.document.DocumentSourceFactory
@@ -21,6 +22,7 @@ import com.ceshi.printtool.document.PrintFile
 import com.ceshi.printtool.print.OtgPrintManager
 import com.ceshi.printtool.print.PrintOptions
 import com.ceshi.printtool.print.PrintResult
+import com.ceshi.printtool.print.UsbPrinterDetector
 import com.ceshi.printtool.print.WirelessPrintHelper
 import com.google.android.material.button.MaterialButton
 
@@ -39,6 +41,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var copiesInput: EditText
     private lateinit var paperSpinner: Spinner
     private lateinit var colorSpinner: Spinner
+    private lateinit var usbStatus: TextView
+    private var usbListenerCleanup: (() -> Unit)? = null
 
     private val pickFiles =
         registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -63,6 +67,12 @@ class MainActivity : AppCompatActivity() {
 
         otgPrint = OtgPrintManager(this)
         wifiPrint = WirelessPrintHelper(this)
+
+        usbStatus = findViewById(R.id.usbStatus)
+        otgPrint.listenForDeviceChanges { runOnUiThread { refreshUsbState() } }.also {
+            usbListenerCleanup = it
+        }
+        refreshUsbState()
 
         duplexCheck = findViewById(R.id.duplexCheck)
         copiesInput = findViewById(R.id.copiesInput)
@@ -94,6 +104,30 @@ class MainActivity : AppCompatActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleIntent(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshUsbState()
+    }
+
+    override fun onDestroy() {
+        usbListenerCleanup?.invoke()
+        usbListenerCleanup = null
+        super.onDestroy()
+    }
+
+    private fun refreshUsbState() {
+        if (!otgPrint.isUsbHostSupported()) {
+            usbStatus.setText(R.string.usb_unsupported)
+            return
+        }
+        val printers = otgPrint.detectPrinters()
+        when {
+            printers.isEmpty() -> usbStatus.setText(R.string.usb_none)
+            printers.size == 1 -> usbStatus.text = getString(R.string.usb_connected_one, printers[0].brand)
+            else -> usbStatus.text = getString(R.string.usb_connected_many, printers.size)
+        }
     }
 
     private fun handleIntent(intent: Intent?) {
@@ -185,9 +219,37 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "当前设备不支持 USB OTG Host 功能", Toast.LENGTH_LONG).show()
             return
         }
-        val source = DocumentSourceFactory.open(this, f)
+        val printers = otgPrint.detectPrinters()
+        if (printers.isEmpty()) {
+            Toast.makeText(this, R.string.usb_none, Toast.LENGTH_LONG).show()
+            return
+        }
+        // 只有一台就直接打，多台让用户挑一台
+        if (printers.size == 1) {
+            doOtgPrint(printers[0], f)
+        } else {
+            showPrinterPicker(printers, f)
+        }
+    }
+
+    private fun showPrinterPicker(
+        printers: List<UsbPrinterDetector.PrinterInfo>,
+        file: PrintFile
+    ) {
+        val names = printers.map {
+            if (it.backend == UsbPrinterDetector.Backend.HP_HOST_BASED_ZJS) "${it.brand}（主机型，先推固件）" else it.brand
+        }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.usb_choose_printer)
+            .setItems(names) { _, which -> doOtgPrint(printers[which], file) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun doOtgPrint(info: UsbPrinterDetector.PrinterInfo, file: PrintFile) {
+        val source = DocumentSourceFactory.open(this, file)
             ?: run { Toast.makeText(this, R.string.msg_pick_failed, Toast.LENGTH_SHORT).show(); return }
-        otgPrint.print(source, f.name, currentOptions()) { result ->
+        otgPrint.print(info, source, file.name, currentOptions()) { result ->
             val text = when (result) {
                 is PrintResult.Success -> result.message
                 is PrintResult.Failure -> "失败：${result.message}"

@@ -17,6 +17,11 @@
     <string name="option_copies">份数</string>
     <string name="option_paper">纸张</string>
     <string name="option_color">颜色</string>
+    <string name="usb_unsupported">当前设备不支持 USB OTG Host 功能</string>
+    <string name="usb_none">未检测到 USB 打印机，插好 OTG 线再看</string>
+    <string name="usb_connected_one">已连接：%1$s</string>
+    <string name="usb_connected_many">已连接 %1$d 台 USB 打印机，点击 USB/OTG 打印可选</string>
+    <string name="usb_choose_printer">选择要打印的打印机</string>
     <string-array name="paper_sizes">
         <item>A4</item>
         <item>Letter</item>
